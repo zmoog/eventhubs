@@ -2,7 +2,7 @@ import logging
 
 import click
 
-from azure.eventhub import EventHubConsumerClient, EventData
+from azure.eventhub import EventHubConsumerClient, EventHubProducerClient, EventData
 
 
 @click.group()
@@ -63,3 +63,26 @@ def receive(ctx: click.Context, starting_position: str):
             starting_position=starting_position,
         )    
 
+
+@eventdata.command(name="send")
+@click.option(
+    "--text",
+    required=True,
+)
+@click.pass_context
+def send(ctx: click.Context, text: str):
+    """Send event data to Azure Event Hubs"""
+
+    print("Creating EventHubProducerClient")
+    client = EventHubProducerClient.from_connection_string(
+        ctx.obj['connection_string'],
+        eventhub_name=ctx.obj['name'],
+    )
+
+    # print(f"Sending event data to Azure Event Hubs: {text}")
+    # event_data_batch.add(EventData(text))
+
+    print("Sending event data to Azure Event Hubs")
+    with client:
+        # client.send_batch(event_data_batch)
+        client.send_event(EventData(text))
