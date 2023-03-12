@@ -31,7 +31,10 @@ setup(
         [console_scripts]
         eh=eventhubs.cli:cli
     """,
-    install_requires=["click"],
+    install_requires=[
+        "click",
+        "azure-eventhub==5.11.1",
+    ],
     extras_require={
         "test": ["pytest"]
     },
