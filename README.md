@@ -15,6 +15,29 @@ Install this tool using `pip`:
 
 ## Usage
 
+For sending data to an event hub, run:
+
+    eh eventdata send --text '{"message": "Hello Spank"}'
+
+For receiving data to an event hub, run:
+
+    eh eventdata receive
+
+## Configuration
+
+You can set up the connection string and event hub name using the command line options:
+
+    eh eventdata receive --connection-string "Endpoint=.." --name "application-insights"
+
+or the environment variables (or a mix of both):
+
+    export EVENTHUB_CONNECTION_STRING="Endpoint=sb://...="
+    export EVENTHUB_NAME="application-insights"
+
+    eh eventdata receive
+
+    eh eventdata receive --name "another-name"
+
 For help, run:
 
     eventhubs --help
