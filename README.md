@@ -15,13 +15,29 @@ Install this tool using `pip`:
 
 ## Usage
 
-For sending data to an event hub, run:
-
-    eh eventdata send --text '{"message": "Hello Spank"}'
+### Receiving
 
 For receiving data to an event hub, run:
 
     eh eventdata receive
+
+### Sending
+
+For sending a single event to an event hub, run:
+
+    eh eventdata send --text '{"message": "Hello Spank"}'
+
+You can also send multiple events in a batch by using `--text` more than once:
+
+    eh eventdata send --text '{"message": "Hello Spank"}' --text '{"message": "Hello Spank (yes, again)"}'
+
+For sending the lines in a text files as event, run:
+
+    eh eventdata send --lines-from-text-file multiline.txt
+
+For sending the lines from `stdin` as event, run:
+
+    cat multiline.txt | eh eventdata send  
 
 ## Configuration
 
