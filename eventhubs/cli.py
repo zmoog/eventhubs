@@ -27,7 +27,7 @@ from azure.eventhub import EventHubConsumerClient, EventHubProducerClient, Event
 @click.option('--verbose', '-v', is_flag=True, help="Enable verbose mode", default=False)
 @click.pass_context
 def cli(ctx: click.Context, connection_string: str, consumer_group: str, name: str, verbose: bool):
-    "CLI tool to send and receive event data from Azure Event Hubs"
+    """CLI tool to send and receive event data from Azure Event Hubs"""
     ctx.ensure_object(dict)
     ctx.obj['connection_string'] = connection_string
     ctx.obj['consumer_group'] = consumer_group
@@ -90,9 +90,9 @@ def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, T
     )
 
     if text:
-        # text contains a list of messages since the
+        # text contains a list of events since the
         # option is defined as `multiple=True`
-        messages = text
+        events = text
     else:
         # we look for a str to split in line from stdin or
         # a text file
@@ -105,25 +105,25 @@ def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, T
         if not isinstance(content, str):
             # supporting only str-based input, we'll
             # evaluate bytes later on
-            raise TypeError("only 'str' is supported")
+            raise TypeError(f"only 'str' is supported (found: {type(content)})")
 
-        messages = content.splitlines()
+        events = content.splitlines()
 
     with producer:
         batch = producer.create_batch()
-        for _text in messages:
+        for event in events:
             if ctx.obj['verbose']:
-                print(f"adding {_text}")
+                print(f"adding {event}")
             try:
-                batch.add(EventData(_text))
+                batch.add(EventData(event))
             except ValueError as e:
                 # if the batch is full, we send the
                 # current one and the create a brand
-                # new one for the reamainign messages
-                print("Event data batch is full ({} messages).".format(len(batch)))
+                # new one for the remaining events
+                print("Event data batch is full ({} events).".format(len(batch)))
                 producer.send_batch(batch)
                 batch = producer.create_batch()
-                batch.add(EventData(_text))
+                batch.add(EventData(event))
 
         if len(batch) > 0:
             producer.send_batch(batch)
