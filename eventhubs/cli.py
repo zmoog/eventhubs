@@ -1,3 +1,6 @@
+import sys
+from typing import List, TextIO, Union
+
 import click
 
 from azure.eventhub import EventHubConsumerClient, EventHubProducerClient, EventData
@@ -21,13 +24,15 @@ from azure.eventhub import EventHubConsumerClient, EventHubProducerClient, Event
     required=True,
     envvar="EVENTHUB_NAME",
 )
+@click.option('--verbose', '-v', is_flag=True, help="Enable verbose mode", default=False)
 @click.pass_context
-def cli(ctx: click.Context, connection_string: str, consumer_group: str, name: str):
+def cli(ctx: click.Context, connection_string: str, consumer_group: str, name: str, verbose: bool):
     "CLI tool to send and receive event data from Azure Event Hubs"
     ctx.ensure_object(dict)
     ctx.obj['connection_string'] = connection_string
     ctx.obj['consumer_group'] = consumer_group
-    ctx.obj['name'] = name    
+    ctx.obj['name'] = name
+    ctx.obj['verbose'] = verbose
 
 
 @cli.group()
@@ -44,7 +49,7 @@ def eventdata():
 def receive(ctx: click.Context, starting_position: str):
     """Receive event data from Azure Event Hubs"""
 
-    client = EventHubConsumerClient.from_connection_string(
+    consumer = EventHubConsumerClient.from_connection_string(
         ctx.obj['connection_string'],
         ctx.obj['consumer_group'],
         eventhub_name=ctx.obj['name'],
@@ -54,9 +59,9 @@ def receive(ctx: click.Context, starting_position: str):
         print(f"Received event from partition {partition_context.partition_id}: {event.body_as_str()}")
         partition_context.update_checkpoint(event)
 
-    with client:
-        print("Receiving events from Azure Event Hubs")
-        client.receive(
+    with consumer:
+        print(f"Receiving events from {ctx.obj['name']}")
+        consumer.receive(
             on_event=on_event,
             starting_position=starting_position,
         )    
@@ -65,17 +70,60 @@ def receive(ctx: click.Context, starting_position: str):
 @eventdata.command(name="send")
 @click.option(
     "--text",
-    required=True,
+    required=False,
+    multiple=True,
+    default=None,
+)
+@click.option(
+    "--lines-from-text-file",
+    help="Text file to read lines from. If not provided, stdin will be used.",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
+    default="-",
 )
 @click.pass_context
-def send(ctx: click.Context, text: str):
+def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, TextIO]):
     """Send a single event data to Azure Event Hubs"""
 
-    client = EventHubProducerClient.from_connection_string(
+    producer = EventHubProducerClient.from_connection_string(
         ctx.obj['connection_string'],
         eventhub_name=ctx.obj['name'],
     )
 
-    print("Sending event data to Azure Event Hubs")
-    with client:
-        client.send_event(EventData(text))
+    if text:
+        # text contains a list of messages since the
+        # option is defined as `multiple=True`
+        messages = text
+    else:
+        # we look for a str to split in line from stdin or
+        # a text file
+        if lines_from_text_file in ("-", "stdin"):
+            content = sys.stdin.read()
+        else:
+            with open(lines_from_text_file, "r") as f:
+                content = f.read()
+
+        if not isinstance(content, str):
+            # supporting only str-based input, we'll
+            # evaluate bytes later on
+            raise TypeError("only 'str' is supported")
+
+        messages = content.splitlines()
+
+    with producer:
+        batch = producer.create_batch()
+        for _text in messages:
+            if ctx.obj['verbose']:
+                print(f"adding {_text}")
+            try:
+                batch.add(EventData(_text))
+            except ValueError as e:
+                # if the batch is full, we send the
+                # current one and the create a brand
+                # new one for the reamainign messages
+                print("Event data batch is full ({} messages).".format(len(batch)))
+                producer.send_batch(batch)
+                batch = producer.create_batch()
+                batch.add(EventData(_text))
+
+        if len(batch) > 0:
+            producer.send_batch(batch)
