@@ -54,6 +54,19 @@ or the environment variables (or a mix of both):
 
     eh eventdata receive --name "another-name"
 
+Defaults to printing the message payload only, so it is easier to combine output with other tools, like `jq`:
+
+    $ eh eventdata receive | jq '.records[].tenantId' 
+    "1de2b364-21e1-4866-bb46-7804f17c417d"
+    "1de2b364-21e1-4866-bb46-7804f17c417d"
+    "1de2b364-21e1-4866-bb46-7804f17c417d"
+
+But you can still turn on verbose and get more information about what's going on:
+
+    $ eh --verbose eventdata receive
+    Receiving events from mbranca
+    Received event from partition 0: {"records": [{....
+
 For help, run:
 
     eventhubs --help
