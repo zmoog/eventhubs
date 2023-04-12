@@ -24,7 +24,14 @@ from azure.eventhub import EventHubConsumerClient, EventHubProducerClient, Event
     required=True,
     envvar="EVENTHUB_NAME",
 )
-@click.option('--verbose', '-v', is_flag=True, help="Enable verbose mode", default=False)
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    help="Enables verbose mode",
+    default=False,
+    envvar="EVENTHUB_VERBOSE",
+)
 @click.pass_context
 def cli(ctx: click.Context, connection_string: str, consumer_group: str, name: str, verbose: bool):
     """CLI tool to send and receive event data from Azure Event Hubs"""
@@ -56,11 +63,15 @@ def receive(ctx: click.Context, starting_position: str):
     )
 
     def on_event(partition_context, event: EventData):
-        print(f"Received event from partition {partition_context.partition_id}: {event.body_as_str()}")
+        if ctx.obj['verbose']:
+            print(f"Received event from partition {partition_context.partition_id}: {event.body_as_str()}")
+        else:
+            print(event.body_as_str())
         partition_context.update_checkpoint(event)
 
     with consumer:
-        print(f"Receiving events from {ctx.obj['name']}")
+        if ctx.obj['verbose']:
+            print(f"Receiving events from {ctx.obj['name']}")
         consumer.receive(
             on_event=on_event,
             starting_position=starting_position,
@@ -120,7 +131,8 @@ def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, T
                 # if the batch is full, we send the
                 # current one and the create a brand
                 # new one for the remaining events
-                print("Event data batch is full ({} events).".format(len(batch)))
+                if ctx.obj['verbose']:
+                    print("Event data batch is full ({} events).".format(len(batch)))
                 producer.send_batch(batch)
                 batch = producer.create_batch()
                 batch.add(EventData(event))
