@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 
 
 def get_long_description():
@@ -33,7 +33,7 @@ setup(
     """,
     install_requires=[
         "click",
-        "azure-eventhub==5.11.1",
+        "azure-eventhub==5.11.5",
     ],
     extras_require={
         "test": ["pytest"]
