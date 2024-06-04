@@ -170,8 +170,6 @@ def send_batch(ctx: click.Context, text: List[str], lines_from_text_file: Union[
         for i in range(0, len(events), batch_size):
             batch = producer.create_batch()
             for event in events[i:i+batch_size]:
-                # if ctx.obj['verbose']:
-                #     print(f"adding {event}")
                 try:
                     batch.add(EventData(event))
                 except ValueError as e:
@@ -184,7 +182,6 @@ def send_batch(ctx: click.Context, text: List[str], lines_from_text_file: Union[
             if ctx.obj['verbose']:
                 print(f"sending batch of {len(batch)} events")
             
-            # producer.send_batch(batch, partition_key="whatever")
             producer.send_batch(batch)
 
             if ctx.obj['verbose']:
