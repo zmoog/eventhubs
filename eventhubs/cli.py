@@ -1,5 +1,5 @@
 import sys
-from typing import List, TextIO, Union
+from typing import List, Optional, TextIO, Union
 
 import click
 
@@ -78,7 +78,45 @@ def receive(ctx: click.Context, starting_position: str):
         )    
 
 
-@eventdata.command(name="send")
+@eventdata.command(name="send-event")
+@click.option(
+    "--text",
+    required=False
+)
+@click.option(
+    "--partition-key",
+    required=False
+)
+@click.pass_context
+def send_event(ctx: click.Context, text: Union[str, TextIO], partition_key: Optional[str] = None):
+    """Send a single event data to Azure Event Hubs"""
+
+    producer = EventHubProducerClient.from_connection_string(
+        ctx.obj['connection_string'],
+        eventhub_name=ctx.obj['name'],
+    )
+
+    if text:
+        event = text
+    else:
+        event = sys.stdin.read()
+
+    if not isinstance(event, str):
+        # supporting only str-based input, we'll
+        # evaluate bytes later on
+        raise TypeError(f"only 'str' is supported (found: {type(event)})")
+
+    with producer:
+        if ctx.obj['verbose']:
+            print(f"Sending one event to {ctx.obj['name']}")
+
+        producer.send_event(EventData(event), partition_key=partition_key)
+
+        if ctx.obj['verbose']:
+            print(f"event sent successfully")
+
+
+@eventdata.command(name="send-batch")
 @click.option(
     "--text",
     required=False,
@@ -91,9 +129,13 @@ def receive(ctx: click.Context, starting_position: str):
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=True),
     default="-",
 )
+@click.option(
+    "--batch-size",
+    default=10,
+)
 @click.pass_context
-def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, TextIO]):
-    """Send a single event data to Azure Event Hubs"""
+def send_batch(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, TextIO], batch_size: int):
+    """Send a batch of event data to Azure Event Hubs"""
 
     producer = EventHubProducerClient.from_connection_string(
         ctx.obj['connection_string'],
@@ -121,21 +163,29 @@ def send(ctx: click.Context, text: List[str], lines_from_text_file: Union[str, T
         events = content.splitlines()
 
     with producer:
-        batch = producer.create_batch()
-        for event in events:
-            if ctx.obj['verbose']:
-                print(f"adding {event}")
-            try:
-                batch.add(EventData(event))
-            except ValueError as e:
-                # if the batch is full, we send the
-                # current one and the create a brand
-                # new one for the remaining events
-                if ctx.obj['verbose']:
-                    print("Event data batch is full ({} events).".format(len(batch)))
-                producer.send_batch(batch)
-                batch = producer.create_batch()
-                batch.add(EventData(event))
+        if ctx.obj['verbose']:
+            print(f"Sending {len(events)} events to {ctx.obj['name']}")
 
-        if len(batch) > 0:
+        # send the events in batches of `batch_size`
+        for i in range(0, len(events), batch_size):
+            batch = producer.create_batch()
+            for event in events[i:i+batch_size]:
+                # if ctx.obj['verbose']:
+                #     print(f"adding {event}")
+                try:
+                    batch.add(EventData(event))
+                except ValueError as e:
+                    # if the batch is full, we send the
+                    # current one and the create a brand
+                    # new one for the remaining events
+                    if ctx.obj['verbose']:
+                        print("Event data batch is full ({} events).".format(len(batch)))
+            
+            if ctx.obj['verbose']:
+                print(f"sending batch of {len(batch)} events")
+            
+            # producer.send_batch(batch, partition_key="whatever")
             producer.send_batch(batch)
+
+            if ctx.obj['verbose']:
+                print(f"batch sent successfully")

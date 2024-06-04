@@ -25,21 +25,21 @@ For receiving data to an event hub, run:
 
 For sending a single event to an event hub, run:
 
-    eh eventdata send --text '{"message": "Hello Spank"}'
+    eh eventdata send-event --text '{"message": "Hello Spank"}'
 
-You can also send multiple events in a batch by using `--text` more than once:
+You can also send multiple events in a batch by using the `send-batch` command with `--text` multiple times:
 
-    eh eventdata send --text '{"message": "Hello Spank"}' --text '{"message": "Hello Spank (yes, again)"}'
+    eh eventdata send-batch --text '{"message": "Hello Spank"}' --text '{"message": "Hello Spank (yes, again)"}'
 
 For sending the lines in a text files as event, run:
 
-    eh eventdata send --lines-from-text-file multiline.txt
+    eh eventdata send-batch --lines-from-text-file multiline.txt
 
 For sending the lines from `stdin` as event, run:
 
-    cat multiline.txt | eh eventdata send  
+    cat multiline.txt | eh eventdata send-batch  
 
-## Configuration
+### Configuration
 
 You can set up the connection string and event hub name using the command line options:
 
