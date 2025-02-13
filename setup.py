@@ -33,7 +33,7 @@ setup(
     """,
     install_requires=[
         "click",
-        "azure-eventhub==5.13.0",
+        "azure-eventhub==5.14.0",
     ],
     extras_require={
         "test": ["pytest"]
