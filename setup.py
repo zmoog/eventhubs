@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.3.0"
+VERSION = "0.4"
 
 
 def get_long_description():
@@ -38,5 +38,5 @@ setup(
     extras_require={
         "test": ["pytest"]
     },
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
