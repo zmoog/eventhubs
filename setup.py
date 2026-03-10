@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 
 def get_long_description():
@@ -34,6 +34,8 @@ setup(
     install_requires=[
         "click",
         "azure-eventhub==5.14.0",
+        "azure-identity",
+        "pyyaml",
     ],
     extras_require={
         "test": ["pytest"]
