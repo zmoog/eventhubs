@@ -38,5 +38,5 @@ setup(
     extras_require={
         "test": ["pytest"]
     },
-    python_requires=">=3.8",
+    python_requires=">=3.10",
 )
